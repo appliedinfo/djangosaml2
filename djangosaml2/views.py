@@ -320,7 +320,7 @@ def assertion_consumer_service(request,
     logger.debug("User %s authenticated via SSO.", user)
 
     logger.debug('Sending the post_authenticated signal')
-    post_authenticated.send_robust(sender=user, session_info=session_info)
+    post_authenticated.send_robust(sender=request, session_info=session_info)
 
     # redirect the user to the view where he came from
     default_relay_state = get_custom_setting('ACS_DEFAULT_REDIRECT_URL',
