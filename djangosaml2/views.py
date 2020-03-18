@@ -57,6 +57,8 @@ from djangosaml2.utils import (
     get_idp_sso_supported_bindings, get_location, is_safe_url_compat,
 )
 
+from django.core.cache import cache
+
 
 logger = logging.getLogger('djangosaml2')
 
@@ -123,7 +125,9 @@ def login(request,
     # SAML_IGNORE_AUTHENTICATED_USERS_ON_LOGIN setting. If that setting
     # is True (default value) we will redirect him to the came_from view.
     # Otherwise, we will show an (configurable) authorization error.
-    if callable_bool(request.user.is_authenticated):
+    mfa_account = request.session.get("mfa_done_accounts", None)
+    # we have to add this check since this will not allow switching to sso account then
+    if callable_bool(request.user.is_authenticated and not mfa_account):
         redirect_authenticated_user = getattr(settings, 'SAML_IGNORE_AUTHENTICATED_USERS_ON_LOGIN', True)
         if redirect_authenticated_user:
             return HttpResponseRedirect(came_from)
@@ -235,6 +239,9 @@ def login(request,
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
     oq_cache.set(session_id, came_from)
+    # preserver mfa account in cache
+    if mfa_account:
+        cache.set("mfa_done_accounts", mfa_account, 15 * 60)
     return http_response
 
 
@@ -332,6 +339,15 @@ def assertion_consumer_service(request,
     if not is_safe_url_compat(url=relay_state, allowed_hosts={request.get_host()}):
         relay_state = settings.LOGIN_REDIRECT_URL
     logger.debug('Redirecting to the RelayState: %s', relay_state)
+
+    # add already mfa done  account to the new session
+    if cache.get("mfa_done_accounts", None):
+        if request.session.get('mfa_done_accounts'):
+            request.session["mfa_done_accounts"].extend(cache.get("mfa_done_accounts"))
+        else:
+            request.session["mfa_done_accounts"] = cache.get("mfa_done_accounts")
+        cache.delete('mfa_done_accounts')
+
     return HttpResponseRedirect(relay_state)
 
 
