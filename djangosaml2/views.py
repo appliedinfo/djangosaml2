@@ -242,6 +242,8 @@ def login(request,
     # preserver mfa account in cache
     if mfa_account:
         cache.set("mfa_done_accounts", mfa_account, 15 * 60)
+    if request.session.get("account", None):
+        cache.set("current_account", request.session.get("account"), 15 * 60)
     return http_response
 
 
@@ -344,9 +346,19 @@ def assertion_consumer_service(request,
     if cache.get("mfa_done_accounts", None):
         if request.session.get('mfa_done_accounts'):
             request.session["mfa_done_accounts"].extend(cache.get("mfa_done_accounts"))
+            request.session["mfa_done_accounts"] = list(set(request.session["mfa_done_accounts"]))
         else:
             request.session["mfa_done_accounts"] = cache.get("mfa_done_accounts")
         cache.delete('mfa_done_accounts')
+
+    if cache.get("current_account", None):
+        request.session["current_account"] = cache.get("current_account")
+        if request.session.get('mfa_done_accounts'):
+            if not request.session["current_account"].name in request.session["mfa_done_accounts"]:
+                request.session["mfa_done_accounts"].append(request.session["current_account"].name)
+        else:
+            request.session["mfa_done_accounts"] = [cache.get("current_account").name]
+        cache.delete('current_account')
 
     return HttpResponseRedirect(relay_state)
 
