@@ -241,9 +241,9 @@ def login(request,
     oq_cache.set(session_id, came_from)
     # preserver mfa account in cache
     if mfa_account:
-        cache.set("mfa_done_accounts", mfa_account, 15 * 60)
+        cache.set(session_id + "_mfa_done_accounts", mfa_account, 15 * 60)
     if request.session.get("account", None):
-        cache.set("current_account", request.session.get("account"), 15 * 60)
+        cache.set(session_id + "_current_account", request.session.get("account"), 15 * 60)
     return http_response
 
 
@@ -343,22 +343,24 @@ def assertion_consumer_service(request,
     logger.debug('Redirecting to the RelayState: %s', relay_state)
 
     # add already mfa done  account to the new session
-    if cache.get("mfa_done_accounts", None):
+    mfa_done_accounts = cache.get(session_id + "_mfa_done_accounts", None)
+    current_account = cache.get(session_id + "_current_account", None)
+    if mfa_done_accounts:
         if request.session.get('mfa_done_accounts'):
-            request.session["mfa_done_accounts"].extend(cache.get("mfa_done_accounts"))
+            request.session["mfa_done_accounts"].extend(mfa_done_accounts)
             request.session["mfa_done_accounts"] = list(set(request.session["mfa_done_accounts"]))
         else:
-            request.session["mfa_done_accounts"] = cache.get("mfa_done_accounts")
-        cache.delete('mfa_done_accounts')
+            request.session["mfa_done_accounts"] = mfa_done_accounts
+        cache.delete(session_id + "_mfa_done_accounts")
 
-    if cache.get("current_account", None):
-        request.session["current_account"] = cache.get("current_account")
+    if current_account:
+        request.session["current_account"] = current_account
         if request.session.get('mfa_done_accounts'):
             if not request.session["current_account"].name in request.session["mfa_done_accounts"]:
                 request.session["mfa_done_accounts"].append(request.session["current_account"].name)
         else:
-            request.session["mfa_done_accounts"] = [cache.get("current_account").name]
-        cache.delete('current_account')
+            request.session["mfa_done_accounts"] = [current_account.name]
+        cache.delete(session_id + '_current_account')
 
     return HttpResponseRedirect(relay_state)
 
