@@ -343,24 +343,25 @@ def assertion_consumer_service(request,
     logger.debug('Redirecting to the RelayState: %s', relay_state)
 
     # add already mfa done  account to the new session
-    mfa_done_accounts = cache.get(session_id + "_mfa_done_accounts", None)
-    current_account = cache.get(session_id + "_current_account", None)
-    if mfa_done_accounts:
-        if request.session.get('mfa_done_accounts'):
-            request.session["mfa_done_accounts"].extend(mfa_done_accounts)
-            request.session["mfa_done_accounts"] = list(set(request.session["mfa_done_accounts"]))
-        else:
-            request.session["mfa_done_accounts"] = mfa_done_accounts
-        cache.delete(session_id + "_mfa_done_accounts")
+    if session_id:
+        mfa_done_accounts = cache.get(session_id + "_mfa_done_accounts", None)
+        current_account = cache.get(session_id + "_current_account", None)
+        if mfa_done_accounts:
+            if request.session.get('mfa_done_accounts'):
+                request.session["mfa_done_accounts"].extend(mfa_done_accounts)
+                request.session["mfa_done_accounts"] = list(set(request.session["mfa_done_accounts"]))
+            else:
+                request.session["mfa_done_accounts"] = mfa_done_accounts
+            cache.delete(session_id + "_mfa_done_accounts")
 
-    if current_account:
-        request.session["current_account"] = current_account
-        if request.session.get('mfa_done_accounts'):
-            if not request.session["current_account"].name in request.session["mfa_done_accounts"]:
-                request.session["mfa_done_accounts"].append(request.session["current_account"].name)
-        else:
-            request.session["mfa_done_accounts"] = [current_account.name]
-        cache.delete(session_id + '_current_account')
+        if current_account:
+            request.session["current_account"] = current_account
+            if request.session.get('mfa_done_accounts'):
+                if not request.session["current_account"].name in request.session["mfa_done_accounts"]:
+                    request.session["mfa_done_accounts"].append(request.session["current_account"].name)
+            else:
+                request.session["mfa_done_accounts"] = [current_account.name]
+            cache.delete(session_id + '_current_account')
 
     return HttpResponseRedirect(relay_state)
 
