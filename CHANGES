@@ -1,11 +1,180 @@
 Changes
 =======
 
+v1.2.2 (2021-05-27)
+-------------------
+
+- Fix #245: Don't update user_main_attribute @jaap3 (#283)
+- Fix #278: Allow ACS_DEFAULT_REDIRECT_URL to override LOGIN_REDIRECT_URL in more places @jaap3 (#285)
+- Add release notes for previous and upcoming releases @jaap3 (#284)
+- Add default_auto_field setting, strongly recommended in Django 3.2 @jaap3 (#282)
+- SPConfig loader instead of global django settings @peppelinux (#281)
+- Fix #277: Resolve LOGIN_REDIRECT_URL @jaap3 (#279)
+- Resolve LOGIN_REDIRECT_URL @jaap3 (#277)
+
+v1.2.1 (2021-05-23)
+-------------------
+
+- Documentation improved
+- unit tests and coverage improved
+- better handling of unknown idps
+
+
+v1.2.0 (2021-05-14)
+-------------------
+
+- Implement IdP Scoping parameter for SPs suggesting an entityID to a proxy @pauldekkers (#272)
+
+
+v1.1.5 (2021-04-29)
+-------------------
+
+- Cast major/minor django VERSION number into float before comparing @lgarvey (#269)
+- Add note to SameSite cookie docs section recommending upgrade to Django >= 3.1 @m6312 (#267)
+
+
+v1.1.4 (2021-04-28)
+-------------------
+
+- fix: samesite cookie configuration fix for django version <3.1
+
+
+v1.1.3 (2021-04-28)
+--------------------
+
+- Add assertion param to backed.authenticate and backend.is_authorized @lucyeun-alation (#128)
+- feat: CI - added django 3.1 and 3.2
+- fix: Samesite cookie value - fixed #266
+- fix: Docs small changes in setup - pysaml2 example conf improved
+
+
+v.1.1.2 (2021-04-11)
+--------------------
+
+- fix: idp hinting invalid import
+
+
+v.1.1.1 (2021-04-05)
+--------------------
+
+- Read the docs
+- Information exposure mitigation on SSO login view
+
+
+v.1.1.0 (2021-04-01)
+--------------------
+
+- feature: Idp Hinting
+- params: SAML_DEFAULT_BINDING for SSO
+- code cleanup in SSO
+
+
+v.1.0.5 (2021-03-05)
+--------------------
+- code linting, cleanup. Not enough but better than before
+- Documentation: Replace signal with hooks (#251)
+- Better saml_attribute handling in backend - more resilient
+- Add session_info to user auth failed template (#248)
+- Fix SAML_ACS_FAILURE_RESPONSE_FUNCTION override
+- Update Custom Error Handler docs
+
+
+v.1.0.4 (2021-02-16)
+--------------------
+- fixed saml_attributes of zero length
+- removed unused code
+
+
+v1.0.3 (2020-02-04)
+-------------------
+- Django Logout behaviour improved
+
+
+v1.0.2 (2020-01-24)
+-------------------
+- RequestVersionTooLow exception handled in ACS
+- Better exception handling for Malformed SAML Response
+- pySAML2 dep up to v6.5.1
+
+
+v1.0.1 (2020-01-20)
+-------------------
+- PySAML2 dependency, security update
+  https://github.com/IdentityPython/pysaml2/commit/12ec4a70c5aaf4c144f6b30a158193ca99bc76cd
+
+v1.0.0 (2020-10-15)
+-------------------
+- General refactor with Django ClassViews
+
+
+0.50.0 (2020-10-15)
+-------------------
+- Discovery Service support
+
+0.40.1 (2020-09-08)
+-------------------
+- [BugFix] HTTP-REDIRECT Authn Requests with optional signature now works.
+- [BugFix] SameSite - SuspiciousOperation issue in middleware (Issue #220)
+
+0.40.0 (2020-08-07)
+-------------------
+- Allow a SSO request without any attributes besides the NameID info. Backwards-incompatible changes to allow easier behaviour differentiation, two methods now receive the idp identifier (+ **kwargs were added to introduce possible similar changes in the future with less breaking effect):
+  - Method signature changed on Saml2Backend.clean_attributes: from `clean_attributes(self, attributes: dict)` to `clean_attributes(self, attributes: dict, idp_entityid: str, **kwargs)`
+  - Methodignature changed on Saml2Backend.is_authorized: from `is_authorized(self, attributes: dict, attribute_mapping: dict)` to `is_authorized(self, attributes: dict, attribute_mapping: dict, idp_entityid: str, **kwargs)`
+- SAML session refactor and minor changes in README file
+- local Logout - independent by IdP SLO Response
+
+0.30.0 (2020-07-30)
+-------------------
+- SameSite workaround with a specialized cookie, decoupled from django default
+
+0.20.0 (2020-06-29)
+-------------------
+- Bugfix: Always save newly created users when ATTRIBUTE_MAPPING is missing in the config
+- pySAML2 v5.3.0
+
+0.19.1 (2020-06-15)
+------------------
+- Fixes creating new user with iexact lookup
+
+0.19.0 (2020-06-03)
+------------------
+
+- Support several required fields during User creation
+- Don't pass sigalg parameter when not signing login request
+- ALLOW_SAML_HOSTNAMES validation for redirect
+- Custom attribute mapping for Django user model (example)
+- Slo absence workaround
+- Metadata EntityID exception handling
+- Fix unsigned authentication request to POST endpoint
+- py38 Test fixes
+- CI with Github actions
+- Backend restructuring for easier subclassing
+- Assertion consumer service now more extensible as a class-based view
+  with hooks that can be overridden by subclass implementations.
+
+0.18.1 (2020-02-15)
+----------
+- Fixed regression from 0.18.0. Thanks to OskarPersson
+
+0.18.0 (2020-02-14)
+----------
+- Django 3.0 support. Thanks to OskarPersson
+- forceauthn and allowcreate support. Thanks to peppelinux
+- Dropped support for Python 3.4
+- Also thanks to WebSpider, mhindery, DylannCordel, habi3000 for various fixes and improvements
+
+Thanks to plumdog
+
 0.17.2 (2018-08-29)
 ----------
 - Upgraded pysaml2 dependency to version 4.6.0 which fixes security issue.
 
 Thanks to plumdog
+
+UNRELEASED
+----------
+- Allowed creating Users with multiple required fields.
 
 0.17.1 (2018-07-16)
 ----------

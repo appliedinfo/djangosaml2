@@ -19,13 +19,13 @@ from saml2.cache import Cache
 class DjangoSessionCacheAdapter(dict):
     """A cache of things that are stored in the Django Session"""
 
-    key_prefix = '_saml2'
+    key_prefix = "_saml2"
 
     def __init__(self, django_session, key_suffix):
         self.session = django_session
         self.key = self.key_prefix + key_suffix
 
-        super(DjangoSessionCacheAdapter, self).__init__(self._get_objects())
+        super().__init__(self._get_objects())
 
     def _get_objects(self):
         return self.session.get(self.key, {})
@@ -37,20 +37,19 @@ class DjangoSessionCacheAdapter(dict):
         # Changes in inner objects do not cause session invalidation
         # https://docs.djangoproject.com/en/1.9/topics/http/sessions/#when-sessions-are-saved
 
-        #add objects to session
+        # add objects to session
         self._set_objects(dict(self))
-        #invalidate session
+        # invalidate session
         self.session.modified = True
 
 
-class OutstandingQueriesCache(object):
+class OutstandingQueriesCache:
     """Handles the queries that have been sent to the IdP and have not
     been replied yet.
     """
 
     def __init__(self, django_session):
-        self._db = DjangoSessionCacheAdapter(django_session,
-                                             '_outstanding_queries')
+        self._db = DjangoSessionCacheAdapter(django_session, "_outstanding_queries")
 
     def outstanding_queries(self):
         return self._db._get_objects()
@@ -64,6 +63,9 @@ class OutstandingQueriesCache(object):
             del self._db[saml2_session_id]
             self._db.sync()
 
+    def sync(self):
+        self._db.sync()
+
 
 class IdentityCache(Cache):
     """Handles information about the users that have been succesfully
@@ -76,7 +78,7 @@ class IdentityCache(Cache):
     """
 
     def __init__(self, django_session):
-        self._db = DjangoSessionCacheAdapter(django_session, '_identities')
+        self._db = DjangoSessionCacheAdapter(django_session, "_identities")
         self._sync = True
 
 
@@ -86,4 +88,4 @@ class StateCache(DjangoSessionCacheAdapter):
     """
 
     def __init__(self, django_session):
-        super(StateCache, self).__init__(django_session, '_state')
+        super().__init__(django_session, "_state")

@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2012 Yaco Sistemas <lgs@yaco.es>
+# Copyright (C) 2011-2012 Yaco Sistemas <lorenzo.gil.sanchez@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,62 +15,53 @@
 
 import codecs
 import os
-import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def read(*rnames):
-    return codecs.open(os.path.join(os.path.dirname(__file__), *rnames), encoding='utf-8').read()
-
-
-extra = {'test': []}
-if sys.version_info < (3, 4):
-    # Necessary to use assertLogs in tests
-    extra['test'].append('unittest2')
+    return codecs.open(
+        os.path.join(os.path.dirname(__file__), *rnames), encoding="utf-8"
+    ).read()
 
 
 setup(
-    name='djangosaml2',
-    version='0.17.2',
-    description='pysaml2 integration for Django',
-    long_description='\n\n'.join([read('README.rst'), read('CHANGES')]),
+    name="djangosaml2",
+    version="1.9.3",
+    description="pysaml2 integration for Django",
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
         "Framework :: Django",
-        "Framework :: Django :: 1.8",
-        "Framework :: Django :: 1.9",
-        "Framework :: Django :: 1.10",
-        "Framework :: Django :: 1.11",
+        "Framework :: Django :: 3.2",
+        "Framework :: Django :: 4.1",
+        "Framework :: Django :: 4.2",
+        "Framework :: Django :: 5.0",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
         "Topic :: Security",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
-        ],
+    ],
     keywords="django,pysaml2,sso,saml2,federated authentication,authentication",
     author="Yaco Sistemas and independent contributors",
-    author_email="lgs@yaco.es",
-    maintainer="Jozef Knaperek",
-    url="https://github.com/knaperek/djangosaml2",
-    download_url="https://pypi.python.org/pypi/djangosaml2",
-    license='Apache 2.0',
+    author_email="lorenzo.gil.sanchez@gmail.com",
+    maintainer="Giuseppe De Marco",
+    url="https://github.com/IdentityPython/djangosaml2",
+    download_url="https://pypi.org/project/djangosaml2/",
+    license="Apache 2.0",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     zip_safe=False,
-    install_requires=[
-        'defusedxml>=0.4.1',
-        'Django>=1.8',
-        'pysaml2>=4.6.0',
-        ],
-    extras_require=extra,
-    )
+    install_requires=["defusedxml>=0.4.1", "Django>=3.2", "pysaml2>=6.5.1"],
+)

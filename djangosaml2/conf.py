@@ -14,57 +14,58 @@
 # limitations under the License.
 
 import copy
-from importlib import import_module
+from typing import Callable, Optional, Union
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpRequest
+from django.utils.module_loading import import_string
 
 from saml2.config import SPConfig
 
-from djangosaml2.utils import get_custom_setting
+from .utils import get_custom_setting
 
 
-def get_config_loader(path, request=None):
-    i = path.rfind('.')
-    module, attr = path[:i], path[i + 1:]
+def get_config_loader(path: str) -> Callable:
+    """Import the function at a given path and return it"""
     try:
-        mod = import_module(module)
+        config_loader = import_string(path)
     except ImportError as e:
-        raise ImproperlyConfigured(
-            'Error importing SAML config loader %s: "%s"' % (path, e))
-    except ValueError as e:
-        raise ImproperlyConfigured(
-            'Error importing SAML config loader. Is SAML_CONFIG_LOADER '
-            'a correctly string with a callable path?'
-            )
-    try:
-        config_loader = getattr(mod, attr)
-    except AttributeError:
-        raise ImproperlyConfigured(
-            'Module "%s" does not define a "%s" config loader' %
-            (module, attr)
-            )
+        raise ImproperlyConfigured(f'Error importing SAML config loader {path}: "{e}"')
 
-    if not hasattr(config_loader, '__call__'):
-        raise ImproperlyConfigured(
-            "SAML config loader must be a callable object.")
+    if not callable(config_loader):
+        raise ImproperlyConfigured("SAML config loader must be a callable object.")
 
     return config_loader
 
 
-def config_settings_loader(request=None):
+def config_settings_loader(request: Optional[HttpRequest] = None) -> SPConfig:
     """Utility function to load the pysaml2 configuration.
-
-    This is also the default config loader.
+    The configuration can be modified based on the request being passed.
+    This is the default config loader, which just loads the config from the settings.
     """
     conf = SPConfig()
     conf.load(copy.deepcopy(settings.SAML_CONFIG))
     return conf
 
 
-def get_config(config_loader_path=None, request=None):
+def get_config(
+    config_loader_path: Optional[Union[Callable, str]] = None,
+    request: Optional[HttpRequest] = None,
+) -> SPConfig:
+    """Load a config_loader function if necessary, and call that
+    function with the request as argument.
+    If the config_loader_path is a callable instead of a string,
+    no importing is necessary and it will be used directly.
+    Return the resulting SPConfig.
+    """
     config_loader_path = config_loader_path or get_custom_setting(
-        'SAML_CONFIG_LOADER', 'djangosaml2.conf.config_settings_loader')
+        "SAML_CONFIG_LOADER", "djangosaml2.conf.config_settings_loader"
+    )
 
-    config_loader = get_config_loader(config_loader_path)
+    if callable(config_loader_path):
+        config_loader = config_loader_path
+    else:
+        config_loader = get_config_loader(config_loader_path)
+
     return config_loader(request)

@@ -9,7 +9,7 @@
     <p>Please select your <strong>Identity Provider</strong> from the following list:</p>
     <ul>
       {% for url, name in available_idps %}
-      <li><a href="{% url 'saml2_login' %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name }}</a></li>
+      <li><a href="{% url 'saml2_login' %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name|default_if_none:url }}</a></li>
       {% endfor %}
     </ul>
   </body>

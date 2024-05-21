@@ -1,7 +1,15 @@
-from django.conf.urls import include, url
+from django.http import HttpResponse
+from django.urls import include, path
+
 from django.contrib import admin
 
+testpatterns = (
+    [path("dashboard/", lambda request: HttpResponse(""), name="dashboard")],
+    "testprofiles",  # app_name
+)
+
 urlpatterns = [
-    url(r'^saml2/', include('djangosaml2.urls')),
-    url(r'^admin/', admin.site.urls),
+    path("saml2/", include("djangosaml2.urls")),
+    path("admin/", admin.site.urls),
+    path("", include(testpatterns)),
 ]
