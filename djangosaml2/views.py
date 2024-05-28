@@ -62,6 +62,9 @@ from saml2.saml import SCM_BEARER
 from saml2.samlp import AuthnRequest, IDPEntry, IDPList, Scoping
 from saml2.sigver import MissingKey
 from saml2.validate import ResponseLifetimeExceed, ToEarly
+from djangosaml2.signals import post_authenticated
+from django.core.cache import cache
+
 
 from .cache import IdentityCache, OutstandingQueriesCache, StateCache
 from .conf import get_config
@@ -79,6 +82,16 @@ from .utils import (
 )
 
 logger = logging.getLogger("djangosaml2")
+
+
+def callable_bool(value):
+    """ A compatibility wrapper for pre Django 1.10 User model API that used
+    is_authenticated() and is_anonymous() methods instead of attributes
+    """
+    if callable(value):
+        return value()
+    else:
+        return value
 
 
 def saml2_csp_update(view):
@@ -201,8 +214,8 @@ class LoginView(SPConfigMixin, View):
         next_path = _get_next_path(request)
         if next_path is None:
             next_path = get_fallback_login_redirect_url()
-
-        if self.should_prevent_auth(request):
+        mfa_account = request.session.get("mfa_done_accounts", None)
+        if self.should_prevent_auth(request) or callable_bool(request.user.is_authenticated and not mfa_account):
             # If the SAML_IGNORE_AUTHENTICATED_USERS_ON_LOGIN setting is True
             # (default value), redirect to the next_path. Otherwise, show a
             # configurable authorization error.
@@ -417,6 +430,10 @@ class LoginView(SPConfigMixin, View):
             f'Saving the session_id "{oq_cache.__dict__}" '
             "in the OutstandingQueries cache",
         )
+        if mfa_account:
+            cache.set(session_id + "_mfa_done_accounts", mfa_account, 15 * 60)
+        if  request.session.get("account", None):
+            cache.set(session_id + "_current_account", request.session.get("account"), 15 * 60)
 
         # idp hinting support, add idphint url parameter if present in this request
         response = self.add_idp_hinting(http_response) or http_response
@@ -574,7 +591,8 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
                 session_info,
                 attribute_mapping,
                 create_unknown_user,
-                assertion_info
+                assertion_info,
+                session_id
             )
         except PermissionDenied as e:
             return self.handle_acs_failure(
@@ -605,7 +623,8 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
             session_info,
             attribute_mapping,
             create_unknown_user,
-            assertion_info
+            assertion_info,
+            session_id=None
         ):
         """Calls Django's authenticate method after the SAML response is verified"""
         logger.debug("Trying to authenticate the user. Session info: %s", session_info)
@@ -627,9 +646,32 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
         auth.login(self.request, user)
         _set_subject_id(request.saml_session, session_info["name_id"])
         logger.debug("User %s authenticated via SSO.", user)
+        
+        logger.debug('Sending the post_authenticated signal')
+        post_authenticated.send_robust(sender=request, session_info=session_info)
 
         self.post_login_hook(request, user, session_info)
         self.customize_session(user, session_info)
+        # add already mfa done  account to the new session
+        if session_id:
+            mfa_done_accounts = cache.get(session_id + "_mfa_done_accounts", None)
+            current_account = cache.get(session_id + "_current_account", None)
+            if mfa_done_accounts:
+                if request.session.get('mfa_done_accounts'):
+                    request.session["mfa_done_accounts"].extend(mfa_done_accounts)
+                    request.session["mfa_done_accounts"] = list(set(request.session["mfa_done_accounts"]))
+                else:
+                    request.session["mfa_done_accounts"] = mfa_done_accounts
+                cache.delete(session_id + "_mfa_done_accounts")
+
+            if current_account:
+                request.session["current_account"] = current_account
+                if request.session.get('mfa_done_accounts'):
+                    if not request.session["current_account"].name in request.session["mfa_done_accounts"]:
+                        request.session["mfa_done_accounts"].append(request.session["current_account"].name)
+                else:
+                    request.session["mfa_done_accounts"] = [current_account.name]
+                cache.delete(session_id + '_current_account')
 
         return user
 
