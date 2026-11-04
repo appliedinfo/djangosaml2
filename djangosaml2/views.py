@@ -214,7 +214,8 @@ class LoginView(SPConfigMixin, View):
         next_path = _get_next_path(request)
         if next_path is None:
             next_path = get_fallback_login_redirect_url()
-        mfa_account = request.session.get("mfa_done_accounts", None)
+        django_session = getattr(request, "session", {})
+        mfa_account = django_session.get("mfa_done_accounts", None)
         if self.should_prevent_auth(request) or callable_bool(request.user.is_authenticated and not mfa_account):
             # If the SAML_IGNORE_AUTHENTICATED_USERS_ON_LOGIN setting is True
             # (default value), redirect to the next_path. Otherwise, show a
@@ -432,8 +433,8 @@ class LoginView(SPConfigMixin, View):
         )
         if mfa_account:
             cache.set(session_id + "_mfa_done_accounts", mfa_account, 15 * 60)
-        if  request.session.get("account", None):
-            cache.set(session_id + "_current_account", request.session.get("account"), 15 * 60)
+        if django_session.get("account", None):
+            cache.set(session_id + "_current_account", django_session.get("account"), 15 * 60)
 
         # idp hinting support, add idphint url parameter if present in this request
         response = self.add_idp_hinting(http_response) or http_response
