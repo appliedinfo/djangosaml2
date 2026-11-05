@@ -15,7 +15,7 @@
 
 import logging
 import warnings
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from django.apps import apps
 from django.conf import settings
@@ -72,7 +72,7 @@ class Saml2Backend(ModelBackend):
 
     def _extract_user_identifier_params(
         self, session_info: dict, attributes: dict, attribute_mapping: dict
-    ) -> Tuple[str, Optional[Any]]:
+    ) -> tuple[str, Optional[Any]]:
         """Returns the attribute to perform a user lookup on, and the value to use for it.
         The value could be the name_id, or any other saml attribute from the request.
         """
@@ -262,8 +262,8 @@ class Saml2Backend(ModelBackend):
         attributes: dict,
         attribute_mapping: dict,
         request,
-    ) -> Tuple[Optional[settings.AUTH_USER_MODEL], bool]:
-        """Look up the user to authenticate. If he doesn't exist, this method creates him (if so desired).
+    ) -> tuple[Optional[settings.AUTH_USER_MODEL], bool]:
+        """Look up the user to authenticate. If they doesn't exist, this method creates them (if so desired).
         The default implementation looks only at the user_identifier. Override this method in order to do more complex behaviour,
         e.g. customize this per IdP.
         """
@@ -277,7 +277,6 @@ class Saml2Backend(ModelBackend):
             ): user_lookup_value
         }
 
-        # Lookup existing user
         # Lookup existing user
         user, created = None, False
         try:
@@ -322,6 +321,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "get_attribute_value() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self._get_attribute_value(django_field, attributes, attribute_mapping)
 
@@ -329,6 +329,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "get_django_user_main_attribute() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self._user_lookup_attribute
 
@@ -336,6 +337,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "get_django_user_main_attribute_lookup() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return getattr(settings, "SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP", "")
 
@@ -343,6 +345,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "get_user_query_args() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return {
             self.get_django_user_main_attribute()
@@ -353,6 +356,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "configure_user() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self._update_user(user, attributes, attribute_mapping)
 
@@ -360,6 +364,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "update_user() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self._update_user(user, attributes, attribute_mapping)
 
@@ -367,6 +372,7 @@ class Saml2Backend(ModelBackend):
         warnings.warn(
             "_set_attribute() is deprecated, look at the Saml2Backend on how to subclass it",
             DeprecationWarning,
+            stacklevel=2,
         )
         return set_attribute(obj, attr, value)
 
@@ -375,5 +381,6 @@ def get_saml_user_model():
     warnings.warn(
         "_set_attribute() is deprecated, look at the Saml2Backend on how to subclass it",
         DeprecationWarning,
+        stacklevel=2,
     )
     return Saml2Backend()._user_model

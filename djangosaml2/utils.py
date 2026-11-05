@@ -18,6 +18,7 @@ import urllib
 import zlib
 from functools import lru_cache, wraps
 from typing import Optional
+from importlib.metadata import version, PackageNotFoundError
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -47,7 +48,7 @@ def available_idps(config: SPConfig, langpref=None, idp_to_check: str = None) ->
     for metadata in config.metadata.metadata.values():
         # initiate a fetch to the selected idp when using MDQ, otherwise the MetaDataMDX is an empty database
         if isinstance(metadata, MetaDataMDX) and idp_to_check:
-            m = metadata[idp_to_check]
+            m = metadata[idp_to_check]  # noqa: F841
         result = metadata.any("idpsso_descriptor", "single_sign_on_service")
         if result:
             idps.update(result.keys())
@@ -108,11 +109,7 @@ def validate_referral_url(request, url):
     # SAML_STRICT_URL_VALIDATION setting can be used to turn off this check.
     # This should only happen if there is no slash, host and/or protocol in the
     # given URL. A better fix would be to add those to the RelayState.
-    saml_strict_url_validation = getattr(
-        settings,
-        "SAML_STRICT_URL_VALIDATION",
-        True
-    )
+    saml_strict_url_validation = getattr(settings, "SAML_STRICT_URL_VALIDATION", True)
     try:
         if saml_strict_url_validation:
             # This will also resolve Django URL pattern names
@@ -133,8 +130,7 @@ def validate_referral_url(request, url):
     )
 
     if not url_has_allowed_host_and_scheme(url=url, allowed_hosts=saml_allowed_hosts):
-        logger.debug("Referral URL not in SAML_ALLOWED_HOSTS or of the origin "
-                     "host.")
+        logger.debug("Referral URL not in SAML_ALLOWED_HOSTS or of the origin host.")
         return None
 
     return url
@@ -210,7 +206,7 @@ def add_idp_hinting(request, http_response) -> bool:
     return False
 
 
-@lru_cache()
+@lru_cache
 def get_csp_handler():
     """Returns a view decorator for CSP."""
 
@@ -244,6 +240,7 @@ def _django_csp_update_decorator():
     """Returns a view CSP decorator if django-csp is available, otherwise None."""
     try:
         from csp.decorators import csp_update
+        import csp
     except ModuleNotFoundError:
         # If csp is not installed, do not update fields as Content-Security-Policy
         # is not used
@@ -259,4 +256,26 @@ def _django_csp_update_decorator():
     else:
         # autosubmit of forms uses nonce per default
         # form-action https: to send data to IdPs
-        return csp_update(FORM_ACTION=["https:"])
+        # Check django-csp version to determine the appropriate format
+        try:
+            csp_version = version('django-csp')
+            major_version = int(csp_version.split('.')[0])
+
+            # Version detection successful
+            if major_version >= 4:
+                # django-csp 4.0+ uses dict format with named 'config' parameter
+                return csp_update(config={"form-action": ["https:"]})
+            # django-csp < 4.0 uses kwargs format
+            return csp_update(FORM_ACTION=["https:"])
+        except (PackageNotFoundError, ValueError, RuntimeError, AttributeError, IndexError):
+            # Version detection failed, we need to try both formats
+            # Try v4.0+ style first because:
+            # 1. It has better error handling with clear messages
+            # 2. Newer versions are more likely to be supported in the future
+            # 3. If using kwargs with v4.0, it raises a specific RuntimeError we can catch
+            try:
+                return csp_update(config={"form-action": ["https:"]})
+            except (TypeError, RuntimeError):
+                # TypeErrors could happen if config is not a recognized parameter (v3.x)
+                # RuntimeErrors could happen in v4.0+ if we try the wrong approach
+                return csp_update(FORM_ACTION=["https:"])

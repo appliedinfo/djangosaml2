@@ -148,7 +148,7 @@ class SPConfigMixin:
         return state, client
 
 
-@method_decorator(saml2_csp_update, name='dispatch')
+@method_decorator(saml2_csp_update, name="dispatch")
 class LoginView(SPConfigMixin, View):
     """SAML Authorization Request initiator.
 
@@ -202,10 +202,10 @@ class LoginView(SPConfigMixin, View):
 
     def should_prevent_auth(self, request) -> bool:
         # If the user is already authenticated that maybe because of two reasons:
-        # A) He has this URL in two browser windows and in the other one he
-        #    has already initiated the authenticated session.
-        # B) He comes from a view that (incorrectly) send him here because
-        #    he does not have enough permissions. That view should have shown
+        # A) They have this URL in two browser windows and in the other one they
+        #    have already initiated the authenticated session.
+        # B) They comes from a view that (incorrectly) sends them here because
+        #    they do not have enough permissions. That view should have shown
         #    an authorization error in the first place.
         return request.user.is_authenticated
 
@@ -214,7 +214,8 @@ class LoginView(SPConfigMixin, View):
         next_path = _get_next_path(request)
         if next_path is None:
             next_path = get_fallback_login_redirect_url()
-        mfa_account = request.session.get("mfa_done_accounts", None)
+        django_session = getattr(request, "session", {})
+        mfa_account = django_session.get("mfa_done_accounts", None)
         if self.should_prevent_auth(request) or callable_bool(request.user.is_authenticated and not mfa_account):
             # If the SAML_IGNORE_AUTHENTICATED_USERS_ON_LOGIN setting is True
             # (default value), redirect to the next_path. Otherwise, show a
@@ -402,7 +403,7 @@ class LoginView(SPConfigMixin, View):
                 except TemplateDoesNotExist as e:
                     logger.debug(
                         f"TemplateDoesNotExist: [{self.post_binding_form_template}] - {e}",
-                        exc_info=True
+                        exc_info=True,
                     )
 
             if not http_response:
@@ -432,8 +433,8 @@ class LoginView(SPConfigMixin, View):
         )
         if mfa_account:
             cache.set(session_id + "_mfa_done_accounts", mfa_account, 15 * 60)
-        if  request.session.get("account", None):
-            cache.set(session_id + "_current_account", request.session.get("account"), 15 * 60)
+        if django_session.get("account", None):
+            cache.set(session_id + "_current_account", django_session.get("account"), 15 * 60)
 
         # idp hinting support, add idphint url parameter if present in this request
         response = self.add_idp_hinting(http_response) or http_response
@@ -592,7 +593,7 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
                 attribute_mapping,
                 create_unknown_user,
                 assertion_info,
-                session_id
+                session_id,
             )
         except PermissionDenied as e:
             return self.handle_acs_failure(
@@ -610,7 +611,7 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
         if not relay_state:
             logger.debug(
                 "RelayState is not a valid URL, redirecting to fallback: %s",
-                relay_state
+                relay_state,
             )
             return HttpResponseRedirect(get_fallback_login_redirect_url())
 
@@ -618,14 +619,14 @@ class AssertionConsumerServiceView(SPConfigMixin, View):
         return HttpResponseRedirect(relay_state)
 
     def authenticate_user(
-            self,
-            request,
-            session_info,
-            attribute_mapping,
-            create_unknown_user,
-            assertion_info,
-            session_id=None
-        ):
+        self,
+        request,
+        session_info,
+        attribute_mapping,
+        create_unknown_user,
+        assertion_info,
+        session_id=None,
+    ):
         """Calls Django's authenticate method after the SAML response is verified"""
         logger.debug("Trying to authenticate the user. Session info: %s", session_info)
 
@@ -727,7 +728,7 @@ class EchoAttributesView(LoginRequiredMixin, SPConfigMixin, View):
         )
 
 
-@method_decorator(saml2_csp_update, name='dispatch')
+@method_decorator(saml2_csp_update, name="dispatch")
 class LogoutInitView(LoginRequiredMixin, SPConfigMixin, View):
     """SAML Logout Request initiator
 
@@ -843,7 +844,9 @@ class LogoutView(SPConfigMixin, View):
                 )
             except StatusError as e:
                 response = None
-                logger.warning(f"Error logging out from remote provider: {e}", exc_info=True)
+                logger.warning(
+                    f"Error logging out from remote provider: {e}", exc_info=True
+                )
             state.sync()
             return finish_logout(request, response)
 
@@ -895,13 +898,16 @@ def finish_logout(request, response):
             return HttpResponseRedirect(next_path)
         elif settings.LOGOUT_REDIRECT_URL is not None:
             fallback_url = resolve_url(settings.LOGOUT_REDIRECT_URL)
-            logger.debug("No valid RelayState found; Redirecting to "
-                         "LOGOUT_REDIRECT_URL")
+            logger.debug(
+                "No valid RelayState found; Redirecting to " "LOGOUT_REDIRECT_URL"
+            )
             return HttpResponseRedirect(fallback_url)
         else:
             current_site = get_current_site(request)
-            logger.debug("No valid RelayState or LOGOUT_REDIRECT_URL found, "
-                         "rendering fallback template.")
+            logger.debug(
+                "No valid RelayState or LOGOUT_REDIRECT_URL found, "
+                "rendering fallback template."
+            )
             return render(
                 request,
                 "registration/logged_out.html",

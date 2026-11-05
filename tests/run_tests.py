@@ -26,4 +26,6 @@ sys.path.append(PROJECT_DIR)
 # Load models
 application = get_wsgi_application()
 
-management.call_command("test", "djangosaml2.tests", "testprofiles", "-v", "2")
+management.call_command(
+    "test", "djangosaml2.tests", "djangosaml2.tests.test_connect_sso", "testprofiles", "-v", "2"
+)
